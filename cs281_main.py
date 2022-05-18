@@ -96,7 +96,7 @@ class project_ui:
             if u_name == '' or p_name == '' or p_surname == '' or password == '' or phone_number == '' or e_mail == '':
                 sg.popup('All areas must be filled!')
             elif not (re.fullmatch(regex, e_mail)):
-                sg.popup('Invalid Email')       
+                sg.popup('Invalid Email')
             elif len(phone_number) != 10:
                 sg.popup('Wrong Tel no!')
             else:
@@ -193,7 +193,8 @@ class project_ui:
         for i in range(0, len(list_pro)):
             temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(list_pro[i][1], size=(15, 1)),
                     sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
-                    sg.Button("Add Product", key=list_pro[i][4])]
+                    sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                    sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
             cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (list_pro[i][4],))
             self.layout.append(temp)
 
@@ -375,7 +376,7 @@ class project_ui:
         return sg.Window('Order Detail', self.layout)
 
     def evaluate_shipment(self):
-        list_of_points = [1,2,3,4,5]
+        list_of_points = [1, 2, 3, 4, 5]
         self.layout = [[sg.Text("Comments:  "), sg.Input(key='com', size=(20, 2))],
                        [sg.Text("Points(1-5):  "), sg.Listbox(list_of_points, size=(20, 5), key='points')],
                        [sg.Button('Approve'), sg.Button('Back')]]
@@ -383,12 +384,26 @@ class project_ui:
         return sg.Window('Shipment Evaluation', self.layout)
 
     def evaluate_product(self):
-        list_of_points = [1,2,3,4,5]
+        list_of_points = [1, 2, 3, 4, 5]
         self.layout = [[sg.Text("Comments:  "), sg.Input(key='com', size=(20, 2))],
                        [sg.Text("Points(1-5):  "), sg.Listbox(list_of_points, size=(20, 5), key='points')],
                        [sg.Button('Evaluate'), sg.Button('Back')]]
 
         return sg.Window('Product Evaluation', self.layout)
+
+    def print_ev(self, product_ev):
+        self.layout = []
+        self.layout.append([sg.Text("Star", size=(3, 1)), sg.Text("Comment", size=(15, 1))])
+        if product_ev == []:
+            self.layout.append([sg.Text("No Past Evaluations!", size=(15, 1))])
+        else:
+            for el in product_ev:
+                self.layout = [[sg.Text("Stars: " + el[0])],
+                               [sg.Text("Comment:" + el[1])]]
+        back_but = [sg.Button('Back to Product List')]
+        self.layout.append(back_but)
+        return sg.Window('Product Comments', self.layout)
+
 
 Xyz = project_ui()
 Xyz.window = Xyz.window_welcome()
@@ -399,8 +414,9 @@ while True:
     print(event)
     print(values)
     print(shop_active)
-    
-    if shop_active == 1 and event != 'Back':
+
+    if shop_active == 1 and event != 'Back' and event != 'Back to Product List':
+
         if event == 'Payment Stage':
             shop_active = 0
             payment_method = cur.execute('SELECT default_payment_method FROM customer WHERE customer_id = ?',
@@ -414,20 +430,36 @@ while True:
             Xyz.window = Xyz.window_pay(cart_list, adres, payment_method)
 
         elif event != 'Payment Stage':
-            product_id = event
-            cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (product_id,))
-            stock_count = cur.fetchone()
-            if stock_count[0] == 0:
-                sg.popup('No stock!')
-            else:
-                stock_count = stock_count[0] - 1
-                print(stock_count)
-                cur.execute('UPDATE products_supplies SET stock_count= ? WHERE product_id= ? ',
-                            (stock_count, product_id))
-                cart_list.append(event)
-                con.commit()
-                
-    if event=='Back to Main':
+            event = [event]
+            d = dict(event)
+            key_event = list(d.keys())[0]
+            if key_event == 'Add':
+                product_id = d['Add']
+                cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (product_id,))
+                stock_count = cur.fetchone()
+                if stock_count[0] == 0:
+                    sg.popup('No stock!')
+                else:
+                    stock_count = stock_count[0] - 1
+                    print(stock_count)
+                    cur.execute('UPDATE products_supplies SET stock_count= ? WHERE product_id= ? ',
+                                (stock_count, product_id))
+                    cart_list.append(d['Add'])
+                    con.commit()
+            elif key_event == 'Yorum':
+                product_id = d['Yorum']
+                Xyz.window.close()
+                product_ev = []
+                for row in cur.execute('SELECT prod_star,prod_comment FROM evaluate_product WHERE product_id= ? ',
+                                       (product_id,)):
+                    product_ev.append(row)
+                Xyz.window = Xyz.print_ev(product_ev)
+
+    if event == 'Back to Product List':
+        Xyz.window.close()
+        Xyz.window = Xyz.window_list_products()
+
+    if event == 'Back to Main':
         Xyz.window.close()
         Xyz.window = Xyz.window_welcome()
     if event == 'Update Address':
@@ -546,44 +578,37 @@ while True:
         Xyz.window = Xyz.window_welcome()
         Xyz.cust_id = 0
 
-
     if event == 'Evaluate Order-Shipment':
         Xyz.order_id = values.get("order_id")[0].get("Order_id")
         Xyz.window.close()
         Xyz.window = Xyz.evaluate_shipment()
-    if event=='Evaluate Product':
+    if event == 'Evaluate Product':
         Xyz.product_id = values['product'][0][1]
         Xyz.window.close()
         Xyz.window = Xyz.evaluate_product()
-        
-
 
     if event == 'Approve':
         print("Values----", values)
 
         try:
 
-            cur.execute("INSERT INTO evaluate_delivery VALUES (?,?,?,?)", (values.get("points")[0], values.get("com"), Xyz.cust_id, Xyz.order_id))
+            cur.execute("INSERT INTO evaluate_delivery VALUES (?,?,?,?)",
+                        (values.get("points")[0], values.get("com"), Xyz.cust_id, Xyz.order_id))
             con.commit()
         except:
             sg.popup('Already Evaluated!')
             con.rollback()
-           
 
         Xyz.window.close()
         Xyz.window = Xyz.window_cust()
-        
+
     if event == 'Evaluate':
         print("Values----", values)
-        cur.execute("SELECT sup_id FROM products_supplies WHERE product_id=?",(Xyz.product_id,))
-        sup_id=cur.fetchone()[0]
-        try:
-            cur.execute("INSERT INTO evaluate_product VALUES (?,?,?,?,?)", (Xyz.product_id,Xyz.cust_id,sup_id,values.get("points")[0],values.get("com")))
-            con.commit()
-        except:
-            sg.popup('Already Evaluated')
-            con.rollback()
-
+        cur.execute("SELECT sup_id FROM products_supplies WHERE product_id=?", (Xyz.product_id,))
+        sup_id = cur.fetchone()[0]
+        cur.execute("INSERT INTO evaluate_product VALUES (?,?,?,?,?)",
+                    (Xyz.product_id, Xyz.cust_id, sup_id, values.get("points")[0], values.get("com")))
+        con.commit()
         Xyz.window.close()
         Xyz.window = Xyz.window_cust()
 
