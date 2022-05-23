@@ -1,15 +1,16 @@
+"""5EE1EE Online Shopping Project"""
 import sqlite3
 import PySimpleGUI as sg
 from datetime import timedelta, date
 import random
 import re
-
+import datetime
+now=datetime.datetime.now()
 # DB Connect
 
 con = sqlite3.connect('database.db')
 print(con)
 cur = con.cursor()
-
 
 class project_ui:
     def __init__(self):
@@ -18,15 +19,18 @@ class project_ui:
         self.login_user_name = 0
         self.login_user_type = 0
         self.sup_id = 0
+        self.ship_id = 0
         self.cust_id = 0
         self.total_price = 0
         self.order_id = 0
+
 
     def window_welcome(self):
 
         self.layout = [[sg.Text('Welcome to the Online Shopping System. Please enter your information.')],
                        [sg.Button('New Customer')],
                        [sg.Button('New Supplier')],
+                       [sg.Button('New Shipment Company')],
                        [sg.Button('Login Screen')]]
         return sg.Window('Login Window', self.layout)
 
@@ -39,19 +43,32 @@ class project_ui:
 
     def window_sup(self):
         self.layout = [
-            [sg.Button('Add a new product! ')],
+            [sg.Button('Add a new product!')],
             [sg.Button('Delete a product')],
             [sg.Button('Update a product')],
+            [sg.Button('List your orders')],
+            [sg.Button("Start a Discount Campaign")],
             [sg.Button('Logout')]]
 
-        return sg.Window('Enrol Window', self.layout)
+        return sg.Window('Supplier Window', self.layout)
 
     def window_ship(self):
-        return None
+        self.layout=[
+            [sg.Button('Show all shipments!')],
+            [sg.Button('Logout')]
+        ]
+
+        return sg.Window('Shipment Company Window', self.layout)
 
     def window_cust(self):
+        self.layout=[]
+        cur.execute('SELECT CAT_NAME from category')
+        cats=cur.fetchall()
+        cat_list=[]
+        for el in cats:
+            cat_list.append(el[0])
         self.layout = [
-            [sg.Button('List the products')],
+            [sg.Button('List the products'),sg.Listbox(values=cat_list, size=(20, 5), key='cat', select_mode='extended')],
             [sg.Button('Old Orders')],
             [sg.Button('Logout')]]
 
@@ -68,10 +85,125 @@ class project_ui:
                        [sg.Text('url:', size=(12, 1)), sg.Input(key='url', size=(10, 1))],
                        [sg.Text('work_address:', size=(12, 1)), sg.Input(key='work_address', size=(10, 1))],
 
-                       [sg.Button('Enrol')]]
+                       [sg.Button('Enrol'), sg.Button('Back to Main')]]
         # print(layout)
         # cur.execute("params")
         return sg.Window('Enrol Window', self.layout)
+    def window_create_customer(self):
+        self.layout = [[sg.Text('user_name:', size=(12, 1)), sg.Input(key='user_name', size=(10, 1))],
+                       [sg.Text('name:', size=(12, 1)), sg.Input(key='name', size=(10, 1))],
+                       [sg.Text('surname:', size=(12, 1)), sg.Input(key='surname', size=(10, 1))],
+                       [sg.Text('phone_number:', size=(12, 1)), sg.Input(key='pno', size=(10, 1))],
+                       [sg.Text('password:', size=(12, 1)), sg.Input(key='pword', size=(10, 1))],
+                       [sg.Text('e_mail:', size=(12, 1)), sg.Input(key='mail', size=(10, 1))],
+                       [sg.Listbox(['Cash', 'EFT', 'Online', 'Credit Card'], size=(20, 5), key='pay')],
+                       # [sg.Text('default_payment_method:', size=(12, 1)), sg.Input(key='default_payment_method', size=(10, 1))],
+                       [sg.Text('address:', size=(12, 1)), sg.Input(key='address', size=(10, 1))],
+                       [sg.Button('Enrol'), sg.Button('Back to Main')]]
+        # print(layout)
+        # cur.execute("params")
+        return sg.Window('Enrol Window', self.layout)
+    def window_create_shipment_comp(self):
+        self.layout = [[sg.Text('user_name:', size=(12, 1)), sg.Input(key='user_name', size=(10, 1))],
+                       [sg.Text('name:', size=(12, 1)), sg.Input(key='name', size=(10, 1))],
+                       [sg.Text('surname:', size=(12, 1)), sg.Input(key='surname', size=(10, 1))],
+                       [sg.Text('phone_number:', size=(12, 1)), sg.Input(key='pno', size=(10, 1))],
+                       [sg.Text('password:', size=(12, 1)), sg.Input(key='pword', size=(10, 1))],
+                       [sg.Text('e_mail:', size=(12, 1)), sg.Input(key='mail', size=(10, 1))],
+                       [sg.Text('number_truck:', size=(12, 1)), sg.Input(key='num_truck', size=(10, 1))],
+                       [sg.Button('Enrol'), sg.Button('Back to Main')]]
+        # print(layout)
+        # cur.execute("params")
+        return sg.Window('Enrol Window', self.layout)
+    def insert_shipment_comp(self, values):
+        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        user_list = []
+        u_name = values['user_name']
+        p_name = values['name']
+        p_surname = values['surname']
+        password = values['pword']
+        phone_number = values['pno']
+        try:
+            abcdd=int(phone_number)
+            int_flag=1
+        except:
+            int_flag=0
+        e_mail = values['mail']
+        num_trucks = values['num_truck']
+        try:
+            sadss=int(num_trucks)
+            t_flag=1
+        except:
+            t_flag=0
+        cur.execute('SELECT user_name FROM user')
+        a = list(cur.fetchall())
+        print(a)
+        for i in range(0, len(a)):
+            user_list.append((a[i][0]))
+        if u_name in user_list:
+            sg.popup('User Name already taken')
+        else:
+            if u_name == '' or p_name == '' or p_surname == '' or password == '' or phone_number == '' or e_mail == '' or num_trucks=='':
+                sg.popup('All areas must be filled!')
+            elif not (re.fullmatch(regex, e_mail)):
+                sg.popup('Invalid Email')
+            elif len(phone_number) != 10 or not int_flag:
+                sg.popup('Wrong Tel no!')
+            elif not t_flag:
+                sg.popup('Number of Trucks should be integer')
+            else:
+                cur.execute('SELECT MAX(shipment_id) FROM shipment_company')
+                row = cur.fetchone()
+                id = int(row[0]) + 1
+                cur.execute('INSERT INTO User VALUES (?,?,?,?,?,?)',
+                            (u_name, p_name, p_surname, phone_number, password, e_mail))
+                cur.execute('INSERT INTO shipment_company VALUES (?,?,?)', (id, int(num_trucks), u_name))
+                con.commit()
+                self.window.close()
+                self.window = self.window_welcome()
+
+    def insert_customer(self, values):
+        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+
+        user_list = []
+        u_name = values['user_name']
+        p_name = values['name']
+        p_surname = values['surname']
+        password = values['pword']
+        phone_number = values['pno']
+        try:
+            abcdd=int(phone_number)
+            int_flag=1
+        except:
+            int_flag=0
+        e_mail = values['mail']
+        default_payment_method = values['pay'][0]
+        address = values['address']
+        cur.execute('SELECT user_name FROM user')
+        a = list(cur.fetchall())
+        print(a)
+        for i in range(0, len(a)):
+            user_list.append((a[i][0]))
+        if u_name in user_list:
+            sg.popup('User Name already taken')
+        else:
+            if u_name == '' or p_name == '' or p_surname == '' or password == '' or phone_number == '' or e_mail == '' or address=='':
+                sg.popup('All areas must be filled!')
+            elif not (re.fullmatch(regex, e_mail)):
+                sg.popup('Invalid Email')
+            elif len(phone_number) != 10 or not int_flag:
+                sg.popup('Wrong Tel no!')
+            else:
+                cur.execute('SELECT MAX(customer_id) FROM customer')
+                row = cur.fetchone()
+                id = int(row[0]) + 1
+                cur.execute('INSERT INTO User VALUES (?,?,?,?,?,?)',
+                            (u_name, p_name, p_surname, phone_number, password, e_mail))
+                cur.execute('INSERT INTO customer VALUES (?,?,?,?,?)', (id, address, default_payment_method, 1, u_name))
+                con.commit()
+                self.window.close()
+                self.window = self.window_welcome()
 
     def insert_supplier(self, values):
         regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
@@ -81,6 +213,11 @@ class project_ui:
         p_surname = values['surname']
         password = values['pword']
         phone_number = values['pno']
+        try:
+            abcdd=int(phone_number)
+            int_flag=1
+        except:
+            int_flag=0
         e_mail = values['mail']
         shop_name = values['shop_name']
         url = values['url']
@@ -93,11 +230,11 @@ class project_ui:
         if u_name in user_list:
             sg.popup('User Name already taken')
         else:
-            if u_name == '' or p_name == '' or p_surname == '' or password == '' or phone_number == '' or e_mail == '':
+            if u_name == '' or p_name == '' or p_surname == '' or password == '' or phone_number == '' or e_mail == '' or shop_name=='' or url=='' or work_address=='':
                 sg.popup('All areas must be filled!')
             elif not (re.fullmatch(regex, e_mail)):
                 sg.popup('Invalid Email')
-            elif len(phone_number) != 10:
+            elif len(phone_number) != 10 or not int_flag:
                 sg.popup('Wrong Tel no!')
             else:
                 cur.execute('SELECT MAX(sup_id) FROM supplier')
@@ -133,7 +270,7 @@ class project_ui:
         if len(products) == 0:
             sg.popup("There is no product for this user")
             return self.window_sup()
-        self.layout = [[sg.Listbox(products, size=(20, 5), key='pid')],
+        self.layout = [[sg.Listbox(products, size=(40, 10), key='pid')],
                        [sg.Button('Delete'), sg.Button('Back to Supplier Menu')]]
 
         return sg.Window('Delete Product', self.layout)
@@ -179,26 +316,148 @@ class project_ui:
                 self.window.close()
                 self.window = self.window_sup()
 
-    def window_list_products(self):
-        cur.execute('''SELECT products_supplies.description,  products_supplies.price,supplier.shop_name,
-        CAT_NAME,products_supplies.product_id FROM category, products_supplies, has2,supplier WHERE 
-        products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id
-        AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 ''')
-        list_pro = cur.fetchall()
+    def window_list_products(self, values):
+        try:
+            filtered_cats=values['cat']
+            self.yedek_val=values
+        except:
+            values=self.yedek_val
+            filtered_cats = values['cat']
+        if len (filtered_cats)==0:
+            cur.execute('''SELECT products_supplies.description,  products_supplies.price,supplier.shop_name,
+            CAT_NAME,products_supplies.product_id FROM category, products_supplies, has2,supplier WHERE 
+            products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id
+            AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 ''')
+            list_pro = cur.fetchall()
+            Lo=[]
+            cur.execute('''SELECT products_supplies.description, supplier.shop_name,CAT_NAME,products_supplies.price, products_supplies.price*(100 - discount."%")/100 as discounted_percentage, discount."%", products_supplies.product_id
+                            FROM category, products_supplies, has2,supplier, has1,discount 
+                            WHERE products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 AND 
+                            products_supplies.product_id=has1.product_id AND has1.discount_id = discount.discount_id AND discount.start<? and ?<discount.end''', (str(datetime.datetime.now()), str(datetime.datetime.now())))
+            self.discounted_products = cur.fetchall()
+            self.dpid=[]
+            for i in range(len(self.discounted_products)):
+                self.dpid.append(self.discounted_products[i][-1])
+            print(self.discounted_products)
+            for elem in self.discounted_products:
+                Lo.append(elem[0])
+                print(elem)
+            self.layout = []
+            self.layout.append(
+                [sg.Text("Product", size=(15, 1)), sg.Text("Price", size=(15, 1)), sg.Text("Shop Name", size=(15, 1)),
+                 sg.Text("Category", size=(15, 1))])
+            for i in range(0, len(list_pro)):
+                if list_pro[i][0] not in Lo:
+                    print(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(list_pro[i][1], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                else:
+                    print(list_pro[i][0])
+                    k=Lo.index(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(self.discounted_products[k][4], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (list_pro[i][4],))
+                self.layout.append(temp)
 
-        self.layout = []
-        self.layout.append(
-            [sg.Text("Product", size=(15, 1)), sg.Text("Price", size=(15, 1)), sg.Text("Shop Name", size=(15, 1)),
-             sg.Text("Category", size=(15, 1))])
-        for i in range(0, len(list_pro)):
-            temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(list_pro[i][1], size=(15, 1)),
-                    sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
-                    sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
-                    sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
-            cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (list_pro[i][4],))
-            self.layout.append(temp)
+            self.layout.append([sg.Button('Back'), sg.Button('Payment Stage'), sg.Button("See the Discounted Products")])
+        elif len(filtered_cats)==1:
+            additional_sql_code=f"AND CAT_NAME='{filtered_cats[0]}'"
+            cur.execute('''SELECT products_supplies.description,  products_supplies.price,supplier.shop_name,
+            CAT_NAME,products_supplies.product_id FROM category, products_supplies, has2,supplier WHERE 
+            products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id
+            AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 '''+additional_sql_code)
+            list_pro = cur.fetchall()
+            Lo = []
+            cur.execute('''SELECT products_supplies.description, supplier.shop_name,CAT_NAME,products_supplies.price, products_supplies.price*(100 - discount."%")/100 as discounted_percentage, discount."%", products_supplies.product_id
+                            FROM category, products_supplies, has2,supplier, has1,discount 
+                            WHERE products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 AND 
+                            products_supplies.product_id=has1.product_id AND has1.discount_id = discount.discount_id AND discount.start<? and ?<discount.end '''+additional_sql_code,
+                        (str(datetime.datetime.now()), str(datetime.datetime.now())))
+            self.discounted_products = cur.fetchall()
+            self.dpid = []
+            for i in range(len(self.discounted_products)):
+                self.dpid.append(self.discounted_products[i][-1])
+            print(self.discounted_products)
+            for elem in self.discounted_products:
+                Lo.append(elem[0])
+                print(elem)
+            self.layout = []
+            self.layout.append(
+                [sg.Text("Product", size=(15, 1)), sg.Text("Price", size=(15, 1)), sg.Text("Shop Name", size=(15, 1)),
+                 sg.Text("Category", size=(15, 1))])
+            for i in range(0, len(list_pro)):
+                if list_pro[i][0] not in Lo:
+                    print(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(list_pro[i][1], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                else:
+                    print(list_pro[i][0])
+                    k = Lo.index(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)),
+                            sg.Text(self.discounted_products[k][4], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (list_pro[i][4],))
+                self.layout.append(temp)
 
-        self.layout.append([sg.Button('Back'), sg.Button('Payment Stage')])
+            self.layout.append(
+                [sg.Button('Back'), sg.Button('Payment Stage'), sg.Button("See the Discounted Products")])
+        elif len(filtered_cats)>1:
+            additional_sql_code=f"AND (CAT_NAME='{filtered_cats[0]}'"
+            for i in range(1, len(filtered_cats)):
+                additional_sql_code += f" OR CAT_NAME='{filtered_cats[i]}'"
+            additional_sql_code+=')'
+            cur.execute('''SELECT products_supplies.description,  products_supplies.price,supplier.shop_name,
+            CAT_NAME,products_supplies.product_id FROM category, products_supplies, has2,supplier WHERE 
+            products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id
+            AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 '''+additional_sql_code)
+            list_pro = cur.fetchall()
+            Lo = []
+            cur.execute('''SELECT products_supplies.description, supplier.shop_name,CAT_NAME,products_supplies.price, products_supplies.price*(100 - discount."%")/100 as discounted_percentage, discount."%", products_supplies.product_id
+                            FROM category, products_supplies, has2,supplier, has1,discount 
+                            WHERE products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 AND 
+                            products_supplies.product_id=has1.product_id AND has1.discount_id = discount.discount_id AND discount.start<? and ?<discount.end '''+additional_sql_code,
+                        (str(datetime.datetime.now()), str(datetime.datetime.now())))
+            self.discounted_products = cur.fetchall()
+            self.dpid = []
+            for i in range(len(self.discounted_products)):
+                self.dpid.append(self.discounted_products[i][-1])
+            print(self.discounted_products)
+            for elem in self.discounted_products:
+                Lo.append(elem[0])
+                print(elem)
+            self.layout = []
+            self.layout.append(
+                [sg.Text("Product", size=(15, 1)), sg.Text("Price", size=(15, 1)), sg.Text("Shop Name", size=(15, 1)),
+                 sg.Text("Category", size=(15, 1))])
+            for i in range(0, len(list_pro)):
+                if list_pro[i][0] not in Lo:
+                    print(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)), sg.Text(list_pro[i][1], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                else:
+                    print(list_pro[i][0])
+                    k = Lo.index(list_pro[i][0])
+                    temp = [sg.Text(list_pro[i][0], size=(15, 1)),
+                            sg.Text(self.discounted_products[k][4], size=(15, 1)),
+                            sg.Text(list_pro[i][2], size=(15, 1)), sg.Text(list_pro[i][3], size=(15, 1)),
+                            sg.Button("Add Product", key=(('Add', list_pro[i][4]))),
+                            sg.Button("Evaluations of Product", key=(('Yorum', list_pro[i][4])))]
+                cur.execute('SELECT stock_count FROM products_supplies WHERE product_id= ? ', (list_pro[i][4],))
+                self.layout.append(temp)
+
+            self.layout.append(
+                [sg.Button('Back'), sg.Button('Payment Stage'), sg.Button("See the Discounted Products")])
+
         return sg.Window('List Products', self.layout)
 
     def button_login(self, values):
@@ -229,14 +488,15 @@ class project_ui:
                     self.login_user_type = 'Shipment'
                     sg.popup('Welcome, ' + self.name_of_user + ' ( Shipment Company)')
                     self.window.close()
+                    cur.execute('SELECT shipment_id FROM shipment_company WHERE user_name=?', (uname,))
+                    self.ship_id = int(cur.fetchone()[0])
                     self.window = self.window_ship()
                 elif row_supplier is not None:
                     self.login_user_type = 'Supplier'
                     sg.popup('Welcome, ' + self.name_of_user + ' ( Supplier)')
                     self.window.close()
                     cur.execute('SELECT sup_id FROM supplier WHERE user_name=?', (uname,))
-                    self.sup_id = cur.fetchone()
-                    self.sup_id = int(''.join(filter(str.isdigit, self.sup_id)))
+                    self.sup_id = int(cur.fetchone()[0])
 
                     self.window = self.window_sup()
 
@@ -245,8 +505,9 @@ class project_ui:
                     sg.popup('Welcome, ' + self.name_of_user + ' (Customer)')
                     self.window.close()
                     cur.execute('SELECT customer_id FROM customer WHERE user_name=?', (uname,))
-                    self.cust_id = cur.fetchone()
-                    self.cust_id = int(''.join(filter(str.isdigit, self.cust_id)))
+                    self.cust_id = int(cur.fetchone()[0])
+
+                    # self.cust_id = int(''.join(filter(str.isdigit, self.cust_id)))
                     self.window = self.window_cust()
                 else:
                     sg.popup('DB Error')
@@ -278,25 +539,48 @@ class project_ui:
         return sg.Window('Update Detail', self.layout)
 
     def window_pay(self, cart_list, adres, payment_method):
-        self.layout = []
-        self.total_price = 0
-        for el in cart_list:
-            pro_price = cur.execute('SELECT price FROM products_supplies WHERE product_id = ?', (el,))
-            pro_price = cur.fetchone()
-            self.total_price += (pro_price[0])
-            pro_name = cur.execute('SELECT description FROM products_supplies WHERE product_id = ?', (el,))
-            pro_name = cur.fetchone()
-            temp = [sg.Text((pro_name[0]), size=(15, 1)), sg.Text((pro_price[0]), size=(15, 1))]
+
+
+        if len(cart_list)!=0:
+            self.layout = []
+            self.total_price = 0
+            for el in cart_list:
+                if el not in self.dpid:
+                    cur.execute('SELECT price FROM products_supplies WHERE product_id = ?', (el,))
+                else:
+                    cur.execute('''SELECT products_supplies.price*(100 - discount."%")/100 as discounted_percentage
+                                FROM category, products_supplies, has2,supplier, has1,discount 
+                                WHERE products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 AND 
+                                products_supplies.product_id=has1.product_id AND has1.discount_id = discount.discount_id AND products_supplies.product_id = ?  AND discount.start<? and ?<discount.end''', (el, str(datetime.datetime.now()), str(datetime.datetime.now())))
+                pro_price = cur.fetchone()
+                print('xty'+ str(pro_price))
+                self.total_price += (pro_price[0])
+                print('xxty'+ str(self.total_price))
+                pro_name = cur.execute('SELECT description FROM products_supplies WHERE product_id = ?', (el,))
+                pro_name = cur.fetchone()
+                temp = [sg.Text((pro_name[0]), size=(15, 1)), sg.Text((pro_price[0]), size=(15, 1))]
+                self.layout.append(temp)
+            temp = [sg.Text('Total:' + str(self.total_price))]
             self.layout.append(temp)
-        temp = [sg.Text('Total:' + str(self.total_price))]
-        self.layout.append(temp)
-        temp = [sg.Text('Payment Method:' + str(payment_method)), sg.Button('Update Payment Method')]
-        self.layout.append(temp)
-        temp = [sg.Text('Address:' + str(adres)), sg.Button('Update Address')]
-        self.layout.append(temp)
-        temp = [sg.Button('Pay!')]
-        self.layout.append(temp)
-        return sg.Window('Cart', self.layout)
+            temp = [sg.Text('Payment Method:' + str(payment_method)), sg.Button('Update Payment Method')]
+            self.layout.append(temp)
+            temp = [sg.Text('Address:' + str(adres)), sg.Button('Update Address')]
+            self.layout.append(temp)
+            cur.execute('select user_name from shipment_company')
+            shipment_comps=cur.fetchall()
+            L1=[]
+            for el in shipment_comps:
+                L1.append(el[0])
+            print(L1)
+            temp = [sg.Text("Shipment Company: "), sg.Listbox(L1, size=(20, 5), key='shipment')]
+            self.layout.append(temp)
+            temp = [sg.Button('Pay!'), sg.Button('Back to Product List')]
+            self.layout.append(temp)
+            return sg.Window('Cart', self.layout)
+        else:
+            sg.popup('Please add a product to your cart!')
+            return self.window_list_products(values)
+
 
     def window_address(self):
         self.layout = [[sg.Text("New Address:  "), sg.Input(key='new_address', size=(10, 1))],
@@ -304,21 +588,21 @@ class project_ui:
         return sg.Window('Update Address', self.layout)
 
     def window_new_payment_method(self):
-        payment_types = ['Cash', 'Credit Card', 'EFT']
+        payment_types = ['Cash', 'Credit Card', 'EFT', 'Online']
         self.layout = [[sg.Listbox(payment_types, size=(20, 5), key='pay')], [sg.Button('Confirm Payment Type')]]
         return sg.Window('Update Payment Method', self.layout)
 
-    def create_order(self, adres, payment_method, cart_list):
+    def create_order(self, adres, payment_method, cart_list, shipment):
         cur.execute('SELECT MAX(order_id) FROM order_delivery')
         max_order = cur.fetchone()
+        print(max_order)
         order_num = int(max_order[0]) + 1
         shipcompid = []
-        cur.execute('SELECT shipment_id FROM shipment_company')
-        shipment_ids = cur.fetchall()
-        a = list(shipment_ids)
-        for i in range(0, len(a)):
-            shipcompid.append((a[i][0]))
-        shipcompany = (random.choice(shipcompid))
+        scomp=shipment[0]
+        cur.execute(f"SELECT shipment_id FROM shipment_company where user_name='{scomp}'")
+        shipment_id = cur.fetchone()
+        shipcompany = shipment_id[0]
+
         todaysDate = date.today().strftime('%d-%m-%Y')
         EndDate = date.today() + timedelta(days=3)
         estimated_delivery_date = EndDate.strftime('%d-%m-%Y')
@@ -328,7 +612,6 @@ class project_ui:
         con.commit()
         unique_pro = set(cart_list)
         countvspro = dict((i, cart_list.count(i)) for i in cart_list)
-        counts = []
         for el in unique_pro:
             count = countvspro[el]
             cur.execute('INSERT INTO include VALUES (?,?,?) ', (el, order_num, count))
@@ -340,8 +623,6 @@ class project_ui:
         cur.execute(
             '''SELECT product_id FROM order_delivery, include WHERE order_delivery.order_id=include.order_id AND customer_id=? ''',
             (cust_id,))
-        order_products = cur.fetchall()
-        list_products = [i[0] for i in order_products]
         cur.execute('SELECT total_price, date,order_id FROM order_delivery WHERE customer_id=?', (cust_id,))
         order_ids = cur.fetchall()
         if not order_ids:
@@ -382,7 +663,26 @@ class project_ui:
                        [sg.Button('Approve'), sg.Button('Back')]]
 
         return sg.Window('Shipment Evaluation', self.layout)
+    def window_show_shipment(self):
+        self.layout=[[sg.Text('user_name'), sg.Text('order date'), sg.Text('Delivered?')]]
+        sid=self.ship_id
 
+        now=datetime.datetime.now()
+        cur.execute(f"select u.user_name, o.date from order_delivery o, user u, customer c where o.shipment_id={sid} and c.customer_id=o.customer_id and u.user_name=c.user_name and o.estimated_delivery_date>'{now}'")
+        delivered=cur.fetchall()
+        cur.execute(f"select u.user_name, o.date from order_delivery o, user u, customer c where o.shipment_id={sid} and c.customer_id=o.customer_id and u.user_name=c.user_name and o.estimated_delivery_date<'{now}'")
+        not_delivered=cur.fetchall()
+        L_del=[]
+        L_not_del=[]
+        for el in delivered:
+            L_del.append((el[0], el[1]))
+        for el in not_delivered:
+            L_not_del.append((el[0], el[1]))
+        for i in range(len(L_del)):
+            self.layout.append([sg.Text(L_del[i][0]), sg.Text(str(L_del[i][1])), sg.Text('Not Delivered!')])
+        for i in range(len(L_not_del)):
+            self.layout.append([sg.Text(L_not_del[i][0]), sg.Text(str(L_not_del[i][1])), sg.Text('Delivered!')])
+        return sg.Window('Shipments', self.layout)
     def evaluate_product(self):
         list_of_points = [1, 2, 3, 4, 5]
         self.layout = [[sg.Text("Comments:  "), sg.Input(key='com', size=(20, 2))],
@@ -397,12 +697,170 @@ class project_ui:
         if product_ev == []:
             self.layout.append([sg.Text("No Past Evaluations!", size=(15, 1))])
         else:
+            self.layout = []
+            i = 0
             for el in product_ev:
-                self.layout = [[sg.Text("Stars: " + el[0])],
-                               [sg.Text("Comment:" + el[1])]]
+                self.layout.append([sg.Text("Comment: " + str(i + 1))])
+                self.layout.append([sg.Text("Stars: " + el[0])])
+                self.layout.append([sg.Text("Comment:" + el[1])])
+                i += 1
         back_but = [sg.Button('Back to Product List')]
         self.layout.append(back_but)
         return sg.Window('Product Comments', self.layout)
+
+    def sup_view_order(self):
+
+        orders = []
+
+        for order in cur.execute('''SELECT products_supplies.product_id, order_delivery.order_id, date, address, payment_type, estimated_delivery_date
+                       FROM products_supplies, include, order_delivery 
+                       WHERE products_supplies.product_id = include.product_id
+                       AND include.order_id = order_delivery.order_id AND sup_id = ?''', (self.sup_id,)):
+            orders.append(order)
+        if len(orders) == 0:
+            sg.popup("There are no orders for this supplier")
+            return self.window_sup()
+
+        self.layout = [[sg.Listbox(orders, size=(60, 15), key='pid')],
+                       [sg.Button('Billing Information')], [sg.Button('Back to Supplier Menu')]]
+
+        return sg.Window('Product Order', self.layout)
+
+    def order_billling_info(self):
+        order_info = []
+
+        cur.execute('''SELECT shipment_company.number_truck, 
+                       order_delivery.address, date, payment_type, order_delivery.shipment_id, estimated_delivery_date
+                       FROM shipment_company, order_delivery, products_supplies, include 
+                       WHERE shipment_company.shipment_id=order_delivery.shipment_id AND products_supplies.product_id = include.product_id
+                       AND include.order_id = order_delivery.order_id AND sup_id = ?''', (self.sup_id,))
+        row = cur.fetchone()
+        order_info.append(row)
+        if len(order_info) == 0:
+            sg.popup("There are no orders for this supplier")
+            return self.window_sup()
+
+        self.layout = [[sg.Listbox(order_info, size=(60, 15), key='pid')],
+                       [sg.Button('Back to Supplier Menu')], [sg.Button('List your orders')]]
+
+        return sg.Window('Order Billing Information', self.layout)
+
+    def discount_campaign(self):
+        product_info = []
+
+        cur.execute('''select p.product_id, p.description
+                        from supplier s, products_supplies p
+                        where p.sup_id = s.sup_id and s.sup_id = ?''', (self.sup_id,))
+        products = cur.fetchall()
+        if (len(products) == 0):
+            sg.popup("There are no products of supplier")
+            return self.window_sup()
+
+        for row in products:
+            product_info.append(row)
+
+        self.layout = [[sg.Text("Select the product to discount")],
+                       [sg.Listbox(product_info, size=(60, 15), key='pid', select_mode="multiple")],
+                       [sg.Text("Enter Starting date (dd.mm.yyyy) :")], [sg.Input(key="Starting Date", size=(10, 1))],
+                       [sg.Text("Enter Ending date (dd.mm.yyyy) :")], [sg.Input(key="Ending Date", size=(10, 1))],
+                       [sg.Text("Enter Discount (percentage) :")], [sg.Input(key="Discount Percentage", size=(10, 1))],
+                       [sg.Button("Apply Discount")], [sg.Button("Back to Supplier Menu")]]
+        return sg.Window("Disount Campaign", self.layout)
+
+    def discount_validation(self, values):
+        Ids = values.get("pid")
+        num_of_choices = len(Ids)
+        starting_date = values["Starting Date"]
+        ending_date = values["Ending Date"]
+        discount_percentage = values["Discount Percentage"]
+
+        try:
+            start_date = datetime.datetime.strptime(starting_date, "%d.%m.%Y")
+        except:
+            sg.Popup("Invalid starting date")
+            return self.discount_campaign()
+
+        try:
+            end_date = datetime.datetime.strptime(ending_date, "%d.%m.%Y")
+        except:
+            sg.Popup("Invalid ending date date")
+            return self.discount_campaign()
+
+        if (start_date > end_date):
+            sg.Popup("Starting date cannot be later than ending date")
+            return self.discount_campaign()
+
+        try:
+            percentage = int(discount_percentage)
+        except:
+            sg.Popup("Please enter a valid percentage ratio")
+            return self.discount_campaign()
+
+        if not (0 <= percentage <= 100):
+            sg.Popup("Percentage should be between 0 and 100")
+            return self.discount_campaign()
+
+        for i in range(num_of_choices):
+            product_id = Ids[i][0]
+
+            cur.execute('''select product_id
+                       from has1
+                       where sup_id = ?''', (self.sup_id,))
+
+            discounted_ids = cur.fetchall()
+            for row in discounted_ids:
+                if (str(row[0]) == str(product_id)):
+                    ppup = sg.Window("Window",
+                                     [[sg.Text("There is already a discount campaign assigned to that product." +
+                                               " Do you want to replace it ?")], [sg.Button("Yes"), sg.Button("No")]])
+                    events, values = ppup.read()
+                    if (events == "No"):
+                        ppup.close()
+                        return self.discount_campaign()
+                    else:
+                        ppup.close()
+                        cur.execute('''DELETE FROM has1
+                                    where product_id = ?''', (int(product_id),))
+                        break
+
+            cur.execute('''select discount_id from discount''')
+            lst = cur.fetchall()
+            discount_ids = []
+            for k in range(len(lst)):
+                discount_ids.append(lst[k][0])
+            discount_ids = list(map(int, discount_ids))
+            max_discount_id = max(discount_ids)
+            max_discount_id = max_discount_id + 1
+            cur.execute('''INSERT INTO discount VALUES (?,?,?,?)''',
+                        (max_discount_id, percentage, start_date, end_date))
+            con.commit()
+            cur.execute('''INSERT INTO has1 VALUES (?,?,?)''', (int(product_id), max_discount_id, self.sup_id))
+            con.commit()
+        sg.Popup("Discount(s) Applied Successfully")
+        return self.discount_campaign()
+
+    def Discount_prices(self):
+
+        cur.execute('''SELECT products_supplies.description, supplier.shop_name,CAT_NAME,products_supplies.price, products_supplies.price*(100 - discount."%")/100 as discounted_percentage, discount."%", products_supplies.product_id
+                        FROM category, products_supplies, has2,supplier, has1,discount 
+                        WHERE products_supplies.product_id=has2.product_id  AND supplier.sup_id=products_supplies.sup_id AND has2.CAT_DID=category.CAT_DID AND products_supplies.stock_count >0 AND 
+                        products_supplies.product_id=has1.product_id AND has1.discount_id = discount.discount_id AND discount.start<? and ?<discount.end''', (str(datetime.datetime.now()), str(datetime.datetime.now())))
+        self.discounted_products = cur.fetchall()
+        self.dpid=[]
+        for i in range(len(self.discounted_products)):
+            self.dpid.append(self.discounted_products[i][-1])
+        print(self.discounted_products)
+        self.layout = []
+        self.layout.append(
+            [sg.Text("Product", size=(15, 1)), sg.Text("Company", size=(15, 1)), sg.Text("Category", size=(15, 1)),
+             sg.Text("Price", size=(15, 1)), sg.Text("Discounted_price", size=(15, 1)),
+             sg.Text("Percentage", size=(15, 1))])
+        for row in self.discounted_products:
+            self.layout.append(
+                [sg.Text(row[0], size=(15, 1)), sg.Text(row[1], size=(15, 1)), sg.Text(row[2], size=(15, 1)),
+                 sg.Text(row[3], size=(15, 1)), sg.Text(row[4], size=(15, 1)), sg.Text(row[5], size=(15, 1))])
+        self.layout.append([sg.Button("Back to Product list")])
+        return (sg.Window("Discounted_prices", self.layout))
 
 
 Xyz = project_ui()
@@ -411,9 +869,9 @@ cart_list = []
 shop_active = 0
 while True:
     event, values = Xyz.window.read()
-    print(event)
-    print(values)
-    print(shop_active)
+    print('a', event)
+    print('b', values)
+    print('c', shop_active)
 
     if shop_active == 1 and event != 'Back' and event != 'Back to Product List':
 
@@ -428,8 +886,22 @@ while True:
             adres = ''.join(adres[0])
             Xyz.window.close()
             Xyz.window = Xyz.window_pay(cart_list, adres, payment_method)
+            if len(cart_list) == 0:
+                shop_active = 1
 
-        elif event != 'Payment Stage':
+        elif event == "Back to Product list":
+            Xyz.window.close()
+            Xyz.window = Xyz.window_list_products(values)
+
+
+        elif event == "See the Discounted Products":
+            Xyz.window.close()
+            Xyz.window = Xyz.Discount_prices()
+
+
+
+
+        elif event != 'Payment Stage' and event != "Back to Product list" and event != "See the Discounted Products":
             event = [event]
             d = dict(event)
             key_event = list(d.keys())[0]
@@ -457,7 +929,8 @@ while True:
 
     if event == 'Back to Product List':
         Xyz.window.close()
-        Xyz.window = Xyz.window_list_products()
+        Xyz.window = Xyz.window_list_products(values)
+        shop_active=1
 
     if event == 'Back to Main':
         Xyz.window.close()
@@ -486,8 +959,10 @@ while True:
 
     if event == 'Pay!':
         Xyz.window.close()
-        Xyz.create_order(adres, payment_method, cart_list)
+        shipment=values['shipment']
+        Xyz.create_order(adres, payment_method, cart_list, shipment)
         sg.popup('Order Created!')
+        Xyz.window = Xyz.window_cust()
 
     if event == 'Add':
         Xyz.insert_product(values)
@@ -499,10 +974,21 @@ while True:
         new_user = 'supplier'
         Xyz.window.close()
         Xyz.window = Xyz.window_create_supplier()
+    if event == 'New Customer':
+        new_user = 'customer'
+        Xyz.window.close()
+        Xyz.window = Xyz.window_create_customer()
+    if event == 'New Shipment Company':
+        new_user = 'Shipment'
+        Xyz.window.close()
+        Xyz.window = Xyz.window_create_shipment_comp()
     if event == 'Enrol':
         if new_user == 'supplier':
             Xyz.insert_supplier(values)
-
+        if new_user == 'customer':
+            Xyz.insert_customer(values)
+        if new_user == 'Shipment':
+            Xyz.insert_shipment_comp(values)
     if event == 'Login':
         print(values)
         Xyz.button_login(values)
@@ -512,16 +998,21 @@ while True:
         print("values", values)
         Xyz.window = Xyz.oldorders(Xyz.cust_id)
     if event == 'Order Details':
-        order_id1 = values['order_id'][0]['Order_id']
-        Xyz.window.close()
-        Xyz.window = Xyz.see_details(order_id1)
+        try:
+            order_id1 = values['order_id'][0]['Order_id']
+            Xyz.window.close()
+            Xyz.window = Xyz.see_details(order_id1)
+        except:
+            sg.popup('Please select an order!')
 
     if event == 'Back' and Xyz.login_user_type == 'Customer':
         Xyz.window.close()
         Xyz.window = Xyz.window_cust()
         shop_active = 0
-
-    if event == 'Add a new product! ':
+    if event== 'Show all shipments!':
+        Xyz.window.close()
+        Xyz.window = Xyz.window_show_shipment()
+    if event == 'Add a new product!':
         Xyz.window.close()
         Xyz.window = Xyz.window_add_product()
 
@@ -535,11 +1026,11 @@ while True:
 
     if event == 'List the products':
         Xyz.window.close()
-        Xyz.window = Xyz.window_list_products()
+        Xyz.window = Xyz.window_list_products(values)
         shop_active = 1
+
     if event == 'Delete':
         Xyz.window.close()
-
         cur.execute('DELETE FROM products_supplies WHERE product_id = ?', (values["pid"][0][0],))
         cur.execute('DELETE FROM has2 WHERE product_id = ?', (values["pid"][0][0],))
         con.commit()
@@ -582,6 +1073,7 @@ while True:
         Xyz.order_id = values.get("order_id")[0].get("Order_id")
         Xyz.window.close()
         Xyz.window = Xyz.evaluate_shipment()
+
     if event == 'Evaluate Product':
         Xyz.product_id = values['product'][0][1]
         Xyz.window.close()
@@ -606,13 +1098,32 @@ while True:
         print("Values----", values)
         cur.execute("SELECT sup_id FROM products_supplies WHERE product_id=?", (Xyz.product_id,))
         sup_id = cur.fetchone()[0]
-        cur.execute("INSERT INTO evaluate_product VALUES (?,?,?,?,?)",
-                    (Xyz.product_id, Xyz.cust_id, sup_id, values.get("points")[0], values.get("com")))
-        con.commit()
+        try:
+            cur.execute("INSERT INTO evaluate_product VALUES (?,?,?,?,?)",
+                        (Xyz.product_id, Xyz.cust_id, sup_id, values.get("points")[0], values.get("com")))
+            con.commit()
+        except:
+            sg.popup('Already Evaluated')
+            con.rollback()
+
         Xyz.window.close()
         Xyz.window = Xyz.window_cust()
 
+    if event == 'List your orders':
+        Xyz.window.close()
+        Xyz.window = Xyz.sup_view_order()
 
+    if event == 'Billing Information':
+        Xyz.window.close()
+        Xyz.window = Xyz.order_billling_info()
+
+    if event == "Start a Discount Campaign":
+        Xyz.window.close()
+        Xyz.window = Xyz.discount_campaign()
+
+    if event == "Apply Discount":
+        Xyz.discount_validation(values)
+        print(values)
 
     elif event == sg.WIN_CLOSED:
         break
