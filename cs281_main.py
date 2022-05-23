@@ -1,4 +1,3 @@
-"""5EE1EE Online Shopping Project"""
 import sqlite3
 import PySimpleGUI as sg
 from datetime import timedelta, date
@@ -296,7 +295,7 @@ class project_ui:
                 cat_id = ''.join(cat_name[0])
                 cat_id = (cur.execute('SELECT CAT_DID FROM category WHERE CAT_NAME=?', (cat_id,)))
                 cat_id = cur.fetchone()
-                cat_id = ''.join(cat_id[0])
+                cat_id = cat_id[0]
                 print(cat_id)
             else:
                 cat_id = ''
