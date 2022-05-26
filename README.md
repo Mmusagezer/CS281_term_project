@@ -1,4 +1,4 @@
-# CS281_term_project
+# CS281(Data Organization)_term_project
 Online Shopping Group Project
 
 5EE1IE
